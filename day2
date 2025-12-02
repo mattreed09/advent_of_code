@@ -1,0 +1,35 @@
+library(numbers)
+ids = '1-14,46452718-46482242,16-35,92506028-92574540,1515128146-1515174322,56453-79759,74-94,798-971,49-66,601-752,3428-4981,511505-565011,421819-510058,877942-901121,39978-50500,9494916094-9494978970,7432846301-7432888696,204-252,908772-990423,21425-25165,1030-1285,7685-9644,419-568,474396757-474518094,5252506279-5252546898,4399342-4505058,311262290-311393585,1895-2772,110695-150992,567521-773338,277531-375437,284-364,217936-270837,3365257-3426031,29828-36350'
+  tibble(id =
+strsplit(ids,split=",",fixed=TRUE)[[1]],
+id_min = str_extract(id, '^[^-]+'),
+id_max = str_extract(id, '[^-]+$')) %>%
+  mutate(ids = map2(id_min, id_max, ~seq(as.numeric(.x), as.numeric(.y) )  )) %>%
+  unnest(cols = c(ids)) %>%
+  mutate(nc = nchar(ids)) -> id_table1
+  
+  id_table1 %>%
+    left_join(
+  tibble(nc = id_table1$nc %>% unique() ,
+         factor = map(nc, primeFactors)) %>%
+    unnest(factor) )  %>%
+    filter(factor != 1) -> id_table2
+  
+
+  id_table2 %>% 
+    mutate(sub1 = substr(as.character(ids),1, nchar(ids)/factor),
+           sub2 = substr(as.character(ids),nchar(ids)/factor + 1, 2*nchar(ids)/factor),
+           sub3 = substr(as.character(ids),2*nchar(ids)/factor + 1, 3*nchar(ids)/factor),
+           sub4 = substr(as.character(ids),3*nchar(ids)/factor + 1, 4*nchar(ids)/factor),
+           sub5 = substr(as.character(ids),4*nchar(ids)/factor + 1, 5*nchar(ids)/factor),
+           sub6 = substr(as.character(ids),5*nchar(ids)/factor + 1, 6*nchar(ids)/factor),
+           sub7 = substr(as.character(ids),6*nchar(ids)/factor + 1, 7*nchar(ids)/factor) ) -> factors
+  
+    factors %>%
+      filter(sub1 == sub2 &
+               (sub2 == sub3 | sub3 == '') &
+               (sub3 == sub4 | sub4 == '') &
+               (sub4 == sub5 | sub5 == '') &
+               (sub5 == sub6 | sub6 == '') &
+               (sub6 == sub7 | sub7 == '') ) %>%
+      pull(ids) %>% unique() %>% sum()
