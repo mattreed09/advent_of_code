@@ -16,7 +16,7 @@ mutate(max = map_dbl(d, ~max(.x[1:(length(.x)-1)]) ),
 
 #part 2
 day3 <- day3 %>% mutate(which0 = 0, d0 = str_split(joltage, ''))
-for (i in 1:12){
+for (i in 1:12){ # iteratively find the max number in the remaining numbers excluding enough at the end to make a 12 digit string, mark it's position, then build a new shorter string to iterate on
   day3 <- day3 %>%
     mutate(!!sym(paste0('d',i)) := map2(!!sym(paste0('d', i-1)),!!sym(paste0('which',i-1)),
                                                                   ~as.numeric(.x[(.y+1):(length(.x) )])) ,
