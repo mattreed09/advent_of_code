@@ -1,0 +1,46 @@
+  # day 3
+    
+    read_csv('downloads/directions - day 3.csv', col_types = c('c') ) -> day3
+    
+    # part 1
+day3 %>%
+  mutate(d = map(str_split(joltage, ''), as.numeric)) %>%
+mutate(max = map_dbl(d, ~max(.x[1:(length(.x)-1)]) ), 
+         which = map2(d, max, ~min(which(.x == .y))) %>% unlist()
+         ) %>%
+  mutate(d2 = map2(str_split(joltage, ''),which, ~as.numeric(.x[(.y+1):(length(.x))]) ),
+    max2 = map_dbl(d2, ~max(.x[(1):(length(.x))]) )
+           ) %>%
+  mutate(two_dig_max = max*10 + max2) %>%
+  pull(two_dig_max) %>% sum
+
+#part 2
+day3 <- day3 %>% mutate(which0 = 0, d0 = str_split(joltage, ''))
+for (i in 1:12){
+  day3 <- day3 %>%
+    mutate(!!sym(paste0('d',i)) := map2(!!sym(paste0('d', i-1)),!!sym(paste0('which',i-1)),
+                                                                  ~as.numeric(.x[(.y+1):(length(.x) )])) ,
+           !!sym(paste0('max',i)) := map_dbl(!!sym(paste0('d',i)), ~max(.x[(1):(length(.x) - (12-i) )]) ),
+           !!sym(paste0('which',i))  := map2(!!sym(paste0('d',i)), !!sym(paste0('max',i)), 
+                                                                   ~min(which(.x == .y))) %>% unlist()
+    ) 
+}
+
+day3 %>%
+  mutate(
+    total = paste0(as.character(max1),
+                   as.character(max2),
+                   as.character(max3),
+                   as.character(max4),
+                   as.character(max5),
+                   as.character(max6),
+                   as.character(max7),
+                   as.character(max8),
+                   as.character(max9),
+                   as.character(max10),
+                   as.character(max11),
+                   as.character(max12)
+                   
+                   )
+  ) %>%
+  pull(total) %>% as.numeric() %>% sum %>% as.character
