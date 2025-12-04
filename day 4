@@ -1,0 +1,47 @@
+(read_file('downloads/input4.txt') %>% str_split('\n'))[[1]] -> day4
+matrix(data = str_split(day4[1:(length(day4)-1)], '' ) %>% unlist(), nrow = length(day4)-1, byrow = T ) -> d4_mat
+
+# part 1
+rolls = 0
+for (i in 1:nrow(d4_mat)){
+  for (j in 1:ncol(d4_mat)){
+    if (d4_mat[i,j] == '@')
+    {
+      jto = j+1
+      if (j== ncol(d4_mat)) jto = j
+      ito = i+1
+      if (i== nrow(d4_mat)) ito = i
+      rolls = rolls + (((d4_mat[(i-1):(ito),(j-1):(jto)] == '@') %>% sum) - 1 < 4)
+    }
+  }
+}
+
+#part 2
+
+rolls = 0
+increment_rolls = 1
+current_mat = d4_mat
+next_mat = d4_mat
+while (increment_rolls > 0) {
+  increment_rolls = 0
+  
+for (i in 1:nrow(current_mat)){
+  for (j in 1:ncol(current_mat)){
+    if (current_mat[i,j] == '@')
+    {
+      jto = j+1
+      if (j== ncol(current_mat)) jto = j
+      ito = i+1
+      if (i== nrow(current_mat)) ito = i
+      if ((((current_mat[(i-1):(ito),(j-1):(jto)] == '@') %>% sum) - 1 < 4)){
+        increment_rolls = increment_rolls + 1
+        next_mat[i,j] = '.'
+        
+      
+      }
+    }
+  }
+}
+  rolls = rolls + increment_rolls
+  current_mat = next_mat
+}
