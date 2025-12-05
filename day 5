@@ -1,0 +1,48 @@
+# day 5
+(read_file('downloads/day5.txt') %>% str_split('\n'))[[1]] -> inputs
+
+ingredients = tibble(ingredient = inputs[(which(inputs == '')[1] + 1):(length(inputs)-1) ] %>% as.numeric )
+# part 1
+tibble(ranges = inputs[1:(which(inputs == '')[1] - 1)] ) %>%
+  mutate(r_min = as.numeric(str_extract(ranges, '^[^-]+')),
+         r_max = as.numeric(str_extract(ranges, '[^-]+$')) ) %>%
+  arrange(r_min) -> sort1
+
+ingredients %>% crossing(
+sort1
+)  %>%
+# %>% filter(ranges == '11787294463625-19321972662910')
+  filter(ingredient >= r_min & ingredient <= r_max)  %>%
+  distinct(ingredient)  %>% count()
+  # we have to dedupe - are there overlapping ranges?
+
+# part2
+
+# this produces a number that is off by 1 from the correct answer. no idea where the bug is.
+sort1 %>%
+    mutate(next_min = lead(r_min),
+           last_max = lag(r_max),
+         new_rmax = case_when(r_max >= next_min ~ next_min-1,
+                              r_max < last_max ~ last_max,
+                              T ~ r_max),
+         ) %>%
+  mutate(new_rmax_read = as.character(new_rmax)) %>%
+  mutate(range_size = (new_rmax - r_min) + 1,
+         range_size_read = as.character(range_size)) -> sort1
+  sort1 %>% pull(range_size) %>% sum %>% as.character()
+
+
+total = 0
+start = 0
+for (i in 1:nrow(sort1)){
+  newmin = sort1$r_min[i]
+  newmax = sort1$r_max[i]
+  
+  if(newmax >= start){
+    if (newmin < start)newmin = start
+    total = total + (newmax - newmin)+1
+    start = newmax + 1
+    
+  }
+}
+as.character(total)
