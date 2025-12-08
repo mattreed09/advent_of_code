@@ -1,0 +1,64 @@
+# day 8
+(read_file('downloads/day 8.txt') %>% str_split('\n'))[[1]] -> inputs8
+
+inputs8[1:(length(inputs8)-1)] %>% str_split(',') %>%
+  tibble(x = map_dbl(., ~as.numeric(.x[1])),
+         y = map_dbl(., ~as.numeric(.x[2])),
+         z = map_dbl(., ~as.numeric(.x[3])),
+  ) %>% mutate(id = row_number()) -> coords
+
+coords %>% rename_all(paste0,'_a') %>% crossing(coords) %>%
+  filter(id < id_a) %>%
+  mutate(dist = sqrt((x-x_a)^2 + (y-y_a)^2 + (z-z_a)^2 )) %>%
+  arrange(dist) -> distances
+
+
+groups = vector(mode = "list", length = 1)
+distances[1:1000,] %>% select(id_a,id, dist) -> pairs
+
+# equivalence groups in R are a bit tricky.
+for (i in 1:nrow(pairs)){
+  found = list(F, 0)
+  for(group in 1:length(groups) ){
+    if(!found[[1]] & (pairs$id_a[i] %in% groups[[group]] | pairs$id[i] %in% groups[[group]])){ # if either id is found, and we haven't found a match yet, add to this one
+      groups[[group]] = c(groups[[group]], pairs$id_a[i], pairs$id[i] ) %>% unique()
+      found = list(T,group)
+    }
+    else if(found[[1]] & (pairs$id_a[i] %in% groups[[group]] | pairs$id[i] %in% groups[[group]])){ # if either id is found, and we do have a match, take this group and merge with the first one
+      
+      groups[[found[[2]] ]] = c(groups[[found[[2]] ]], groups[[group]]) %>% unique
+      groups[[group]] = c(-1)
+    }
+  }
+  if (!found[[1]]){
+    groups[[length(groups)+1]] = c(pairs$id_a[i], pairs$id[i])
+  }
+}
+lengths(groups) %>% sort(decreasing = T) %>% .[1:3] %>% prod
+
+# part 2
+# stop when we reach a network of size 1000
+groups = vector(mode = "list", length = 1)
+distances -> pairs
+
+# equivalence groups in R are a bit tricky.
+for (i in 1:nrow(distances)){
+  found = list(F, 0)
+  for(group in 1:length(groups) ){
+    if(!found[[1]] & (pairs$id_a[i] %in% groups[[group]] | pairs$id[i] %in% groups[[group]])){ # if either id is found, and we haven't found a match yet, add to this one
+      groups[[group]] = c(groups[[group]], pairs$id_a[i], pairs$id[i] ) %>% unique()
+      found = list(T,group)
+    }
+    else if(found[[1]] & (pairs$id_a[i] %in% groups[[group]] | pairs$id[i] %in% groups[[group]])){ # if either id is found, and we do have a match, take this group and merge with the first one
+      
+      groups[[found[[2]] ]] = c(groups[[found[[2]] ]], groups[[group]]) %>% unique
+      groups[[group]] = c(-1)
+    }
+  }
+  if (!found[[1]]){
+    groups[[length(groups)+1]] = c(pairs$id_a[i], pairs$id[i])
+  }
+  if (max(lengths(groups)) == 1000)break
+  if (i%% 1000 == 0 )print(i)
+}
+distances$x_a[i] * distances$x[i]
