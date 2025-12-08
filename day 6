@@ -1,0 +1,59 @@
+# day 6
+
+(read_file('downloads/day6.txt') %>% str_split('\n'))[[1]] -> inputs6
+
+
+map(inputs6, ~ str_split(.x, ' +')[[1]]) -> split1
+
+split1 %>% map(., ~ .x[.x != ''] ) %>%
+  .[1:5] -> split2
+
+tibble(col1 = split2[[1]],
+       col2 = split2[[2]],
+       col3 = split2[[3]],
+       col4 = split2[[4]],
+       col5 = split2[[5]]) %>%
+  mutate_at(vars(matches('[1-4]')), as.numeric) %>%
+  mutate(out = case_when(col5 == '+' ~ col1 + col2 + col3 + col4,
+                          T ~ col1 * col2 * col3 * col4) ) %>%
+  pull(out) %>% sum %>% as.character
+
+
+# part2
+
+# determine where each col breaks by finding the space columns that are in each row
+map(str_split(inputs6, ''), ~ which(.x == ' ')) %>%
+  unlist() %>% table() %>% .[. == 5 ] %>% names() %>% as.numeric %>%
+  c(., (lengths(str_split(inputs6, '')) %>% max)+1 )-> break_cols
+
+
+t = vector(mode = "list", length = 1000)
+split_cols = str_split(inputs6, '')[1:5]
+last = 0
+for (i in 1:length(break_cols)){
+  nums = c()
+  for (j in (last+1):(break_cols[i]-1) ){
+    nums = c(nums, paste0(split_cols[[1]][j] ,
+                          split_cols[[2]][j] , 
+                          split_cols[[3]][j] , 
+                          split_cols[[4]][j]) ) %>% trimws() %>% as.numeric
+  }
+  op = paste0(split_cols[[5]][(last+1):(break_cols[i]-1)], collapse = '') %>% trimws()
+  
+  t[[i]] = tibble(n1 = nums[1], 
+                  n2 = nums[2],
+                  n3 = nums[3], 
+                  n4 = nums[4],
+                  n5 = nums[5], 
+                  n6 = nums[6],
+                  op = op,
+                  break_col = break_cols[i])
+  last = break_cols[i]
+  print(i)
+}
+
+t %>% bind_rows()  %>%
+  group_by(n1,n2,n3,n4,n5,n6) %>%
+  mutate(x = case_when(op == '*' ~ prod(n1,n2,n3,n4,n5,n6, na.rm = T),
+                       T ~ sum(n1,n2,n3,n4,n5,n6, na.rm = T)) )  %>%
+  pull(x) %>% sum() %>% as.character()
