@@ -1,0 +1,43 @@
+# day 7
+
+(read_file('downloads/day7.txt') %>% str_split('\n'))[[1]] -> inputs7
+
+matrix(data = inputs7[-length(inputs7)] %>% str_split('') %>% unlist(),
+       nrow = length(inputs7)-1, byrow = T ) -> mat7
+
+# part 1
+splits = 0
+for (i in 2:nrow(mat7)){
+  for(last in which(mat7[i-1,] %in% c('S', '|')) ){
+    if (mat7[i,last] == '^'){
+      mat7[i,last-1] = '|'
+      mat7[i,last+1] = '|'
+      splits = splits + 1
+    }
+    else mat7[i,last] = '|'
+  }
+}
+
+# part 2
+# rather than calc each route, would it make more sense to calc number of routes from the last set of splitters
+# and then build back up, cancluating the number of routes that hit a splitter and those that dont, and then
+# then numbero of paths for each point can be the sum of the splitters they reach?
+
+
+matrix(data = inputs7[-length(inputs7)] %>% str_split('') %>% unlist(),
+       nrow = length(inputs7)-1, byrow = T ) -> mat7_up
+
+
+for(i in nrow(mat7_up):1 ){
+  for (splitter in which(mat7_up[i,] %in% c('^', 'S')) ){
+
+    left = mat7_up[i:nrow(mat7_up), splitter-1 ] %>% as.numeric() 
+    right = mat7_up[i:nrow(mat7_up), splitter+1 ] %>% as.numeric()
+    
+    paths = max(left[!is.na(left)][1] , 1, na.rm = T) +
+    max(right[!is.na(right)][1], 1, na.rm = T)  
+    mat7_up[i,splitter] = paths
+    
+  }
+  
+}
