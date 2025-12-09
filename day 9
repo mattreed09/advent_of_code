@@ -1,0 +1,80 @@
+# day 9
+(read_file('downloads/day 9.txt') %>% str_split('\n'))[[1]] -> inputs9
+
+inputs9[1:(length(inputs9)-1)] %>% str_split(',') %>%
+  tibble(x = map_dbl(., ~as.numeric(.x[1])),
+         y = map_dbl(., ~as.numeric(.x[2])),
+  ) %>% mutate(id = row_number()) -> coords9
+
+# part1
+coords9 %>% rename_all(paste0, '_a') %>%
+  crossing(coords9) %>%
+  filter(id_a < id) %>%
+  mutate(rect = ( abs(x-x_a) + 1) * (abs(y-y_a)+1) )  %>%
+  arrange(-rect) -> largest9
+
+largest9 %>%
+  pull(rect) %>% .[1]
+
+# part2
+# without checking each square (as the biggest rectangle has 5 billion squares) how do we ensure each tile is or is not green or red?
+
+# a rectangle will be contained if it never crosses any of the connections - how do we test for that?
+# for each rectangle and for all lines, can we test if they intersect and if so if the rectangle is present on both sides of the line
+# if so it can be discounted
+
+# get segment coords
+coords9[nrow(coords9),] %>%
+bind_rows(coords9) %>% 
+  mutate(last_x = lag(x),
+         last_y = lag(y))  %>%
+  .[-1,] -> wrapped9
+
+# join every segment to every rectangle to determine if a line intercepts the rectangle at all
+largest9 %>% mutate(x_b = x_a, y_b = y,
+                    x_c = x, y_c = y_a) %>%
+  crossing(wrapped9 %>% rename_all(paste0, 'line') ) -> joined9
+
+# all the ways a line can intercept the rectangle. not pretty but relatively functional.
+joined9 %>%
+  mutate(intersect = ((xline > x_a & last_xline < x_a) | (xline < x_a & last_xline > x_a)) & ((y_a < yline & y_b > yline ) | (y_a > yline & y_b < yline ) ) |
+           ((xline > x_a & last_xline < x_a) | (xline < x_a & last_xline > x_a)) & ((y_a < yline & y_c > yline ) | (y_a > yline & y_c < yline ) ) |
+           ((xline > x & last_xline < x) | (xline < x & last_xline > x)) & ((y_a < yline & y_b > yline ) | (y_a > yline & y_b < yline ) ) |
+           ((xline > x & last_xline < x) | (xline < x & last_xline > x)) & ((y_a < yline & y_c > yline ) | (y_a > yline & y_c < yline ) ) |
+           
+          ((yline > y_a & last_yline < y_a) | (yline < y_a & last_yline > y_a)) & ((x_a < xline & x_b > xline ) | (x_a > xline & x_b < xline ) ) |
+          ((yline > y_a & last_yline < y_a) | (yline < y_a & last_yline > y_a)) & ((x_a < xline & x_c > xline ) | (x_a > xline & x_c < xline ) ) |
+          ((yline > y & last_yline < y) | (yline < y & last_yline > y)) & ((x_a < xline & x_b > xline ) | (x_a > xline & x_b < xline ) ) |
+          ((yline > y & last_yline < y) | (yline < y & last_yline > y)) & ((x_a < xline & x_c > xline ) | (x_a > xline & x_c < xline ) )
+  ) -> intersected
+
+intersected %>% group_by(id_a,id, rect,x,y,x_a, y_a, x_b,y_b, x_c,y_c) %>%
+  summarise(intersects = sum(intersect)) %>% filter(intersects == 0) %>%
+  arrange(-rect) -> summarised9
+
+# if not intersected and at least one point exists in the two quadrants beyond points b and c then the shape must be contained
+# easiest way then is just to check there si a point in every quadrant for each point - dont have to work out which direction it should be in.
+summarised9 %>%
+  crossing(coords9 %>% rename_all(paste0,'_coord')) %>%
+  mutate(b1 = (x_b <= x_coord & y_b <= y_coord) ,
+          b2= (x_b >= x_coord & y_b <= y_coord),
+         b3=(x_b <= x_coord & y_b >= y_coord),
+         b4=(x_b >= x_coord & y_b >= y_coord),
+         c1 = (x_c <= x_coord & y_c <= y_coord) ,
+           c2=(x_c >= x_coord & y_c <= y_coord),
+         c3=(x_c <= x_coord & y_c >= y_coord) ,
+         c4=(x_c >= x_coord & y_c >= y_coord)
+         ) %>%
+  group_by(id_a,id,rect,x,y,x_a,y_a,x_b,y_b, x_c,y_c) %>% summarise(b_contained = sum(b1) > 0 & sum(b2) > 0 & sum(b3) > 0 & sum(b4) > 0,
+                                       c_contained = sum(c1) > 0 & sum(c2) > 0 & sum(c3) > 0 & sum(c4) > 0 ) %>%
+  arrange(-rect) -> summarised92
+
+summarised92 %>%
+  filter(b_contained & c_contained) %>%
+  pull(rect) %>% .[1]
+
+coords9 %>% 
+  ggplot(aes(x,y)) + 
+  geom_rect(data = (summarised92 %>%
+  filter(b_contained & c_contained)) [1,], aes(xmin=x_a,xmax = x, ymin=y_a, ymax = y), alpha = 0.2)+
+  geom_path(aes()) 
